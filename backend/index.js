@@ -166,12 +166,10 @@ app.post('/api/analyze', upload.single('image'), async (req, res) => {
         if (!farm) return res.status(404).json({ error: 'Farm not found' });
 
         try {
-            const formData = new (require('form-data'))();
+            const formData = new FormData();
             const fileBuffer = fs.readFileSync(req.file.path);
-            formData.append('file', fileBuffer, {
-                filename: req.file.originalname,
-                contentType: req.file.mimetype
-            });
+            const blob = new Blob([fileBuffer], { type: req.file.mimetype });
+            formData.append('file', blob, req.file.originalname);
 
             const mlResponse = await fetch(`${ML_SERVICE_URL}/analyze`, {
                 method: 'POST',
