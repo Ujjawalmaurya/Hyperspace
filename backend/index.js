@@ -34,6 +34,10 @@ app.use(helmet({
 app.use(morgan('dev'));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
+app.get('/', (req, res) => {
+    res.status(200).send('API is running...');
+});
+
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/hyperspace';
 const ML_SERVICE_URL = process.env.ML_SERVICE_URL || 'http://localhost:8000';
 
