@@ -38,8 +38,8 @@ app.get('/', (req, res) => {
     res.status(200).send('API is running...');
 });
 
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/hyperspace';
-const ML_SERVICE_URL = process.env.ML_SERVICE_URL || 'http://localhost:8000';
+const MONGODB_URI = process.env.MONGODB_URI;
+const ML_SERVICE_URL = process.env.ML_SERVICE_URL;
 
 mongoose.connect(MONGODB_URI)
     .then(() => console.log('Connected to MongoDB'))

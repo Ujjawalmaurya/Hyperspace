@@ -2,7 +2,7 @@
 # verify_backend.sh
 
 echo "1. Fetching Farms..."
-response=$(curl -s http://localhost:5000/api/farms)
+response=$(curl -s https://hyperspace-c9kd.onrender.com/api/farms)
 echo "Response: $response"
 
 # Extract ID using grep/sed (simple hack, assuming simple json)
