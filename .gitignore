@@ -1,1 +1,13 @@
 *.pdf
+
+# misc files
+misc/*
+.DS_Store
+
+# env files
+.env*
+.env.local
+
+# vercel
+.vercel
+
