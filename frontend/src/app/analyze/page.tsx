@@ -36,7 +36,7 @@ export default function AnalyzePage() {
             try {
                 const data = await fetchFarms();
                 setFarms(data);
-                if (data.length > 0) setSelectedFarmId(data[0]._id);
+                if (data.length > 0) setSelectedFarmId(data[0].id);
             } catch (e) {
                 console.error(e);
             } finally {

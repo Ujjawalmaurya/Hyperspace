@@ -1,65 +1,80 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
-const IS_STANDALONE = process.env.NEXT_PUBLIC_STANDALONE === 'true';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
-const mockFarms = [
-    { _id: 'mock-1', name: 'Emerald Valley', location: { lat: 28.61, lng: 77.21 }, size: 25.4, cropType: 'Wheat', farmerName: 'D. Smith' },
-    { _id: 'mock-2', name: 'Azure Plains', location: { lat: 28.62, lng: 77.22 }, size: 12.8, cropType: 'Rice', farmerName: 'J. Doe' },
-];
+const getHeaders = (): HeadersInit => {
+    const token = localStorage.getItem('token');
+    return {
+        'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+    };
+};
 
-const mockStats = {
-    totalFarms: 2,
-    totalArea: "38.2",
-    avgNDVI: "0.78",
-    activeAlerts: 1,
-    recentAnalyses: 5
+export const login = async (username: string, password: string) => {
+    const formData = new URLSearchParams();
+    formData.append('username', username);
+    formData.append('password', password);
+
+    const response = await fetch(`${API_BASE_URL}/token`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: formData,
+    });
+    if (!response.ok) throw new Error('Login failed');
+    return response.json();
+};
+
+export const register = async (email: string, password: string, role = 'user') => {
+    const response = await fetch(`${API_BASE_URL}/users/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password, role }),
+    });
+    if (!response.ok) throw new Error('Registration failed');
+    return response.json();
 };
 
 export const fetchFarms = async () => {
-    if (IS_STANDALONE) return mockFarms;
-    try {
-        const response = await fetch(`${API_BASE_URL}/farms`);
-        if (!response.ok) throw new Error('Failed to fetch farms');
-        return response.json();
-    } catch (e) {
-        console.warn('Falling back to mock farms', e);
-        return mockFarms;
-    }
+    const response = await fetch(`${API_BASE_URL}/farms`, { headers: getHeaders() });
+    if (!response.ok) throw new Error('Failed to fetch farms');
+    return response.json();
+};
+
+export const fetchFarmDetails = async (id: string) => {
+    const response = await fetch(`${API_BASE_URL}/farms/${id}`, { headers: getHeaders() });
+    if (!response.ok) throw new Error('Failed to fetch farm details');
+    return response.json();
 };
 
 export const fetchStats = async () => {
-    if (IS_STANDALONE) return mockStats;
-    try {
-        const response = await fetch(`${API_BASE_URL}/stats`);
-        if (!response.ok) throw new Error('Failed to fetch stats');
-        return response.json();
-    } catch (e) {
-        console.warn('Falling back to mock stats', e);
-        return mockStats;
-    }
+    const response = await fetch(`${API_BASE_URL}/stats`, { headers: getHeaders() });
+    if (!response.ok) throw new Error('Failed to fetch stats');
+    return response.json();
 };
 
 export const analyzeFarmImage = async (farmId: string, imageFile: File) => {
-    if (IS_STANDALONE) {
-        await new Promise(r => setTimeout(r, 2000));
-        return {
-            ndvi: 0.72 + Math.random() * 0.1,
-            healthStatus: 'Optimal Health',
-            diseaseDetected: false,
-            detections: [],
-            yieldPrediction: 12.4,
-            recommendations: ['Maintain current irrigation', 'Schedule next flyover in 10 days'],
-            metadata: { engine: 'Mock-AI-Engine', resolution: '4K' }
-        };
-    }
     const formData = new FormData();
     formData.append('farmId', farmId);
-    formData.append('image', imageFile);
+    formData.append('file', imageFile);
+
+    const token = localStorage.getItem('token');
+    const headers: HeadersInit = token ? { 'Authorization': `Bearer ${token}` } : {};
 
     const response = await fetch(`${API_BASE_URL}/analyze`, {
         method: 'POST',
+        headers: headers,
         body: formData,
     });
     if (!response.ok) throw new Error('Analysis failed');
     return response.json();
 };
 
+export const chatWithAI = async (message: string) => {
+    const response = await fetch(`${API_BASE_URL}/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message }),
+    });
+    if (!response.ok) throw new Error('Chat failed');
+    return response.json();
+};

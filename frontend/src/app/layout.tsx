@@ -19,6 +19,7 @@ export const metadata: Metadata = {
 };
 
 import { LanguageProvider } from "@/hooks/useLanguage";
+import Chatbot from "@/components/Chatbot";
 
 export default function RootLayout({
   children,
@@ -36,6 +37,7 @@ export default function RootLayout({
               {children}
             </main>
           </div>
+          <Chatbot />
         </LanguageProvider>
       </body>
     </html>
