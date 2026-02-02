@@ -20,6 +20,7 @@ export const metadata: Metadata = {
 
 import { LanguageProvider } from "@/hooks/useLanguage";
 import Chatbot from "@/components/Chatbot";
+import { ThemeProvider } from "next-themes";
 
 export default function RootLayout({
   children,
@@ -29,16 +30,18 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <LanguageProvider>
-          <Navbar />
-          <div className="flex pt-16">
-            <Sidebar />
-            <main className="flex-1 lg:ml-64 p-8">
-              {children}
-            </main>
-          </div>
-          <Chatbot />
-        </LanguageProvider>
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+          <LanguageProvider>
+            <Navbar />
+            <div className="flex pt-16">
+              <Sidebar />
+              <main className="flex-1 lg:ml-64 p-8">
+                {children}
+              </main>
+            </div>
+            <Chatbot />
+          </LanguageProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

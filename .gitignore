@@ -1,4 +1,3 @@
-*.pdf
 
 # misc files
 misc/*
@@ -11,3 +10,13 @@ misc/*
 # vercel
 .vercel
 
+# images
+*.jpg
+*.png
+*.jpeg
+
+# zips
+*.zip
+
+# Verification Scripts
+verify_backend.sh

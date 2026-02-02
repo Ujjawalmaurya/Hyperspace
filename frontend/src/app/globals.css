@@ -6,16 +6,29 @@
 }
 
 :root {
-  --background: #0a0f0d;
-  --foreground: #f0fdf4;
+  --background: #ffffff;
+  --foreground: #0a0a0a;
   --primary: #22c55e;
-  --primary-dark: #15803d;
-  --accent: #facc15;
-  --card: #141e1a;
-  --card-foreground: #f0fdf4;
-  --muted: #1e2925;
-  --muted-foreground: #86efac;
-  --border: #2d3b36;
+  --primary-dark: #16a34a;
+  --accent: #eab308;
+  --card: #f9fafb;
+  --card-foreground: #0a0a0a;
+  --muted: #f3f4f6;
+  --muted-foreground: #6b7280;
+  --border: #e5e7eb;
+}
+
+.dark {
+  --background: #09090b;
+  --foreground: #fafafa;
+  --primary: #4ade80;
+  --primary-dark: #22c55e;
+  --accent: #fbbf24;
+  --card: #18181b;
+  --card-foreground: #fafafa;
+  --muted: #27272a;
+  --muted-foreground: #a1a1aa;
+  --border: #3f3f46;
 }
 
 body {
@@ -25,9 +38,14 @@ body {
 }
 
 .glass {
-  background: rgba(20, 30, 26, 0.7);
+  background: rgba(255, 255, 255, 0.7);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.dark .glass {
+  background: rgba(24, 24, 27, 0.7);
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
@@ -81,4 +99,21 @@ body {
 .animate-gradient {
   background-size: 200% 200%;
   animation: gradient 8s ease infinite;
+}
+
+/* Better text color utilities for improved dark mode contrast */
+.text-muted {
+  color: #6b7280;
+}
+
+.dark .text-muted {
+  color: #a1a1aa;
+}
+
+.text-subtle {
+  color: #9ca3af;
+}
+
+.dark .text-subtle {
+  color: #d4d4d8;
 }

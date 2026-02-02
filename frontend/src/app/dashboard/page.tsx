@@ -24,6 +24,7 @@ export default function Dashboard() {
     const router = useRouter();
     const [stats, setStats] = useState<any>(null);
     const [loading, setLoading] = useState(true);
+    const [weather, setWeather] = useState<{ temp: number; description: string } | null>(null);
 
     useEffect(() => {
         const loadStats = async () => {
@@ -38,6 +39,51 @@ export default function Dashboard() {
         };
         loadStats();
     }, []);
+
+    useEffect(() => {
+        const fetchWeather = async () => {
+            try {
+                // Using open-meteo.com - free weather API without API key required
+                const response = await fetch(
+                    'https://api.open-meteo.com/v1/forecast?latitude=26.4621&longitude=82.1342&current_weather=true'
+                );
+                const data = await response.json();
+                if (data.current_weather) {
+                    setWeather({
+                        temp: Math.round(data.current_weather.temperature),
+                        description: getWeatherDescription(data.current_weather.weathercode)
+                    });
+                }
+            } catch (error) {
+                console.error('Failed to fetch weather:', error);
+                setWeather({ temp: 28, description: 'Clear Sky' }); // Fallback
+            }
+        };
+        fetchWeather();
+    }, []);
+
+    const getWeatherDescription = (code: number): string => {
+        const weatherCodes: { [key: number]: string } = {
+            0: 'Clear Sky',
+            1: 'Mainly Clear',
+            2: 'Partly Cloudy',
+            3: 'Overcast',
+            45: 'Foggy',
+            48: 'Foggy',
+            51: 'Light Drizzle',
+            53: 'Drizzle',
+            55: 'Heavy Drizzle',
+            61: 'Light Rain',
+            63: 'Rain',
+            65: 'Heavy Rain',
+            71: 'Light Snow',
+            73: 'Snow',
+            75: 'Heavy Snow',
+            80: 'Rain Showers',
+            95: 'Thunderstorm'
+        };
+        return weatherCodes[code] || 'Unknown';
+    };
 
     const handleExport = () => {
         const data = `Metric,Value\nAvg NDVI,${stats?.avgNDVI}\nTotal Area,${stats?.totalArea} ha\nAlerts,${stats?.activeAlerts}\nDate,${new Date().toLocaleDateString()}`;
@@ -86,12 +132,14 @@ export default function Dashboard() {
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <motion.div variants={itemVariants} className="text-foreground">
                     <h1 className="text-4xl font-black tracking-tight">{t('overview')}</h1>
-                    <p className="text-foreground/60 font-medium">{t('welcome')}</p>
+                    <p className="text-muted font-medium">{t('welcome')}</p>
                 </motion.div>
                 <div className="flex gap-3">
                     <div className="glass px-4 py-2 rounded-xl flex items-center gap-2 border border-border/50 text-foreground">
                         <CloudSun className="w-5 h-5 text-accent" />
-                        <span className="font-medium">28°C / Clear Sky</span>
+                        <span className="font-medium">
+                            {weather ? `${weather.temp}°C / ${weather.description}` : 'Loading...'}
+                        </span>
                     </div>
                     <button
                         onClick={handleExport}
@@ -209,12 +257,12 @@ export default function Dashboard() {
                                         <p className="text-sm font-black text-red-400 uppercase tracking-wider">Pest Cluster</p>
                                         <span className="text-[10px] font-bold bg-red-500 text-white px-2 py-0.5 rounded">URGENT</span>
                                     </div>
-                                    <p className="text-xs text-foreground/70 leading-relaxed font-medium">{stats.activeAlerts} zones showing aphid activity. Ground scouting recommended.</p>
+                                    <p className="text-xs text-muted leading-relaxed font-medium">{stats.activeAlerts} zones showing aphid activity. Ground scouting recommended.</p>
                                 </motion.div>
                             ) : (
                                 <div className="p-5 bg-green-500/10 border border-green-500/20 rounded-2xl">
                                     <p className="text-sm font-black text-green-400 uppercase tracking-wider">All Clear</p>
-                                    <p className="text-xs text-foreground/60 mt-1 font-medium">All monitored sectors are healthy.</p>
+                                    <p className="text-xs text-muted mt-1 font-medium">All monitored sectors are healthy.</p>
                                 </div>
                             )}
                             <motion.div
@@ -222,7 +270,7 @@ export default function Dashboard() {
                                 className="p-5 bg-orange-500/10 border border-orange-500/20 rounded-2xl cursor-pointer"
                             >
                                 <p className="text-sm font-black text-orange-400 uppercase tracking-wider">Nitrogen Dip</p>
-                                <p className="text-xs text-foreground/70 mt-1 font-medium leading-relaxed">Zone B-4 shows 12% drop in chlorophyll activity.</p>
+                                <p className="text-xs text-muted mt-1 font-medium leading-relaxed">Zone B-4 shows 12% drop in chlorophyll activity.</p>
                             </motion.div>
                         </div>
                     </motion.div>

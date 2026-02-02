@@ -19,7 +19,7 @@ echo "2. Creating dummy image..."
 convert -size 100x100 xc:white test_image.jpg
 
 echo "3. Uploading Image..."
-analyze_response=$(curl -s -X POST -F "image=@test_image.jpg" -F "farmId=$farm_id" http://localhost:5000/api/analyze)
+analyze_response=$(curl -s -X POST -F "image=@test_image.jpg" -F "farmId=$farm_id" http://localhost:5001/api/analyze)
 echo "Analyze Response: $analyze_response"
 
 if [[ "$analyze_response" == *"Fallback Active"* ]]; then

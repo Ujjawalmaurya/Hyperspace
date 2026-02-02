@@ -6,3 +6,8 @@ npm-debug.log
 logs/
 uploads/*
 !uploads/.gitkeep
+
+# Mock ML Service & Verification Scripts
+mock_ml_service.js
+verify_flow.sh
+mock_uploads/

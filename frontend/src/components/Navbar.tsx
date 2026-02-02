@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import { Sprout, Search, Languages } from 'lucide-react';
 import { useLanguage } from '@/hooks/useLanguage';
+import ThemeToggle from './ThemeToggle';
 
 export default function Navbar() {
     const { lang, setLang, t } = useLanguage();
@@ -52,6 +53,7 @@ export default function Navbar() {
                             </button>
                         ) : (
                             <>
+                                <ThemeToggle />
                                 <button className="p-2 text-foreground/70 hover:text-primary transition-colors">
                                     <Search className="w-5 h-5" />
                                 </button>

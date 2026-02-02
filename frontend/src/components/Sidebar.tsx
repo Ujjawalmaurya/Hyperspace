@@ -60,8 +60,8 @@ export default function Sidebar() {
                         <Link
                             href={item.href}
                             className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all group relative overflow-hidden ${pathname === item.href
-                                ? 'bg-primary text-black font-black shadow-[0_10px_20px_rgba(34,197,94,0.3)]'
-                                : 'text-foreground/70 hover:text-primary hover:bg-primary/10'
+                                ? 'bg-primary text-white font-black shadow-[0_10px_20px_rgba(34,197,94,0.3)]'
+                                : 'text-subtle hover:text-primary hover:bg-primary/10'
                                 }`}
                         >
                             {pathname === item.href && (
@@ -76,24 +76,6 @@ export default function Sidebar() {
                         </Link>
                     </motion.div>
                 ))}
-            </motion.div>
-
-            <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.6 }}
-                className="absolute bottom-8 left-4 right-4"
-            >
-                <div className="bg-gradient-to-br from-primary/20 via-accent/10 to-transparent p-6 rounded-[2rem] border border-primary/20 backdrop-blur-xl relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-150 transition-transform duration-1000">
-                        <Zap className="w-12 h-12 text-primary" />
-                    </div>
-                    <p className="text-[10px] font-black text-primary mb-1 uppercase tracking-widest">{t('proPlan')}</p>
-                    <p className="text-xs text-foreground/80 mb-4 font-bold leading-tight">Unlock multispectral deep-learning scans.</p>
-                    <button className="w-full bg-primary text-black text-[10px] font-black py-2.5 rounded-xl hover:scale-105 transition-all shadow-lg active:scale-95 uppercase tracking-wider">
-                        {t('upgrade')}
-                    </button>
-                </div>
             </motion.div>
         </aside>
     );
