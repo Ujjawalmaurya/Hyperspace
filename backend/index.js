@@ -175,6 +175,7 @@ const ML_SERVICE_URL = process.env.ML_SERVICE_URL;
 mongoose.connect(MONGODB_URI)
     .then(() => console.log('Connected to MongoDB'))
     .catch(err => console.error('Could not connect to MongoDB', err));
+    
 
 const farmSchema = new mongoose.Schema({
     name: String,
