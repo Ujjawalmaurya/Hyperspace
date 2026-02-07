@@ -83,15 +83,31 @@ export default function MapsPage() {
 
             <div className="flex-1 glass rounded-3xl relative overflow-hidden border border-border/50 group bg-[#0c1311] shadow-2xl">
                 <div className="absolute inset-0 grid grid-cols-4 grid-rows-4 gap-1 p-4">
+
                     {[...Array(16)].map((_, i) => {
-                        const baseNDVI = latestAnalysis ? latestAnalysis.ndvi : 0.7;
-                        const zoneNDVI = Math.max(0, Math.min(1, baseNDVI + (Math.sin(i) * 0.3)));
+                        // Use AI-generated grid if available, otherwise fallback to baseNDVI logic
+                        let zoneValue = 0.5; // Default neutral
+
+                        if (latestAnalysis?.metadata?.ndviGrid && Array.isArray(latestAnalysis.metadata.ndviGrid)) {
+                            zoneValue = latestAnalysis.metadata.ndviGrid[i] ?? 0.5;
+                        } else if (latestAnalysis) {
+                            // Fallback if grid is missing but analysis exists
+                            const baseNDVI = latestAnalysis.ndvi || 0.7;
+                            zoneValue = Math.max(0, Math.min(1, baseNDVI + (Math.sin(i) * 0.1)));
+                        }
 
                         let bgColor = 'bg-primary/20';
                         if (activeLayer === 'ndvi') {
-                            bgColor = zoneNDVI > 0.7 ? 'bg-green-500/40' : zoneNDVI > 0.4 ? 'bg-yellow-500/40' : 'bg-red-500/40';
+                            // NDVI Color Scale: 
+                            // > 0.7 (Healthy) -> Green
+                            // 0.4 - 0.7 (Moderate) -> Yellow
+                            // < 0.4 (Stressed) -> Red
+                            if (zoneValue > 0.7) bgColor = `bg-green-500/${Math.floor(zoneValue * 80 + 20)}`;
+                            else if (zoneValue > 0.4) bgColor = `bg-yellow-500/${Math.floor(zoneValue * 80 + 20)}`;
+                            else bgColor = `bg-red-500/${Math.floor((1 - zoneValue) * 80 + 20)}`;
+
                         } else if (activeLayer === 'thermal') {
-                            bgColor = zoneNDVI > 0.6 ? 'bg-red-500/40' : 'bg-blue-500/40';
+                            bgColor = zoneValue > 0.6 ? 'bg-red-500/40' : 'bg-blue-500/40';
                         } else if (activeLayer === 'pest') {
                             bgColor = i % 5 === 0 ? 'bg-red-600/50 pulse-error' : 'bg-primary/5';
                         }
@@ -110,16 +126,16 @@ export default function MapsPage() {
                                                 <p className="text-xs font-black text-primary uppercase tracking-tighter">Sector {String.fromCharCode(65 + Math.floor(i / 4))}{i % 4 + 1}</p>
                                                 <p className="text-[10px] text-foreground/40">Lat: 28.6{i}4, Lng: 77.2{i}1</p>
                                             </div>
-                                            <div className={`w-2 h-2 rounded-full ${zoneNDVI > 0.4 ? 'bg-primary' : 'bg-red-500'}`} />
+                                            <div className={`w-2 h-2 rounded-full ${zoneValue > 0.4 ? 'bg-primary' : 'bg-red-500'}`} />
                                         </div>
 
                                         <div className="space-y-2">
                                             <div className="flex justify-between text-[10px]">
                                                 <span className="text-foreground/60">NDVI Health</span>
-                                                <span className="font-bold text-foreground">{(zoneNDVI * 100).toFixed(0)}%</span>
+                                                <span className="font-bold text-foreground">{(zoneValue * 100).toFixed(0)}%</span>
                                             </div>
                                             <div className="w-full h-1 bg-muted rounded-full overflow-hidden">
-                                                <div className="h-full bg-primary" style={{ width: `${zoneNDVI * 100}%` }} />
+                                                <div className="h-full bg-primary" style={{ width: `${zoneValue * 100}%` }} />
                                             </div>
 
                                             <div className="flex justify-between text-[10px]">

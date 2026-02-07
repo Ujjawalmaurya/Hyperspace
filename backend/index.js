@@ -37,8 +37,15 @@ mongoose.connect(MONGODB_URI)
     .then(() => {
         console.log('Connected to MongoDB');
         seedData();
+        const PORT = process.env.PORT || 5000;
+        app.listen(PORT, () => {
+            console.log(`Server running on port ${PORT}`);
+        });
     })
-    .catch(err => console.error('Could not connect to MongoDB', err));
+    .catch(err => {
+        console.error('Could not connect to MongoDB', err);
+        process.exit(1);
+    });
 
 async function seedData() {
     const count = await Farm.countDocuments();
@@ -56,7 +63,4 @@ async function seedData() {
     }
 }
 
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-});
+// Server started in mongoose.connect callback
