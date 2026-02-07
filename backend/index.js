@@ -25,6 +25,7 @@ app.use('/api/chat', require('./routes/chat'));
 app.use('/api/farms', require('./routes/farms'));
 app.use('/api/analysis', require('./routes/analysis'));
 app.use('/api/reports', require('./routes/reports'));
+app.use('/api/vegetation', require('./routes/vegetation'));
 
 app.get('/', (req, res) => {
     res.status(200).send('API is running...');
