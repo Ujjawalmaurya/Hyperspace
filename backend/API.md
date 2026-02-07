@@ -85,6 +85,33 @@ Base URL: `http://localhost:5000`
 
 ---
 
+## Reports (`/api/reports`)
+
+### List All Reports
+- **URL:** `/`
+- **Method:** `GET`
+- **Description:** Retrieves all generated AI flight reports, sorted by newest first.
+- **Response:**
+  ```json
+  [
+    {
+      "_id": "65b...",
+      "content": "# Markdown Report...",
+      "mlResults": { ... },
+      "images": ["/uploads/..."],
+      "createdAt": "2024-..."
+    }
+  ]
+  ```
+
+### Get Report by ID
+- **URL:** `/:id`
+- **Method:** `GET`
+- **Description:** Retrieves details of a specific report.
+- **Response:** A single report object.
+
+---
+
 ## AI Chat (`/api/chat`)
 
 ### Chat with Sky Scout

@@ -75,7 +75,8 @@ const translations = {
         dataAcquisition: "Data Acquisition",
         launchMission: "Launch Mission & Capture",
         aiStrategy: "AI Strategy",
-        flightExport: "Flight Export"
+        flightExport: "Flight Export",
+        lastUpdated: "Last Updated"
     },
     hi: {
         dashboard: "डैशबोर्ड",
@@ -148,7 +149,8 @@ const translations = {
         dataAcquisition: "डेटा अधिग्रहण",
         launchMission: "मिशन और कैप्चर लॉन्च करें",
         aiStrategy: "AI रणनीति",
-        flightExport: "उड़ान निर्यात"
+        flightExport: "उड़ान निर्यात",
+        lastUpdated: "पिछला अपडेट"
     }
 };
 

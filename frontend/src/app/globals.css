@@ -117,3 +117,73 @@ body {
 .dark .text-subtle {
   color: #d4d4d8;
 }
+
+/* Markdown Styling */
+.markdown-container {
+  color: var(--color-foreground);
+  line-height: 1.6;
+}
+
+.markdown-container h1 {
+  font-size: 1.875rem;
+  font-weight: 700;
+  margin-bottom: 1.5rem;
+  color: var(--color-primary);
+}
+
+.markdown-container h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-top: 2rem;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: 0.5rem;
+}
+
+.markdown-container h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-top: 1.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.markdown-container p {
+  margin-bottom: 1rem;
+}
+
+.markdown-container ul {
+  list-style-type: disc;
+  padding-left: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.markdown-container ol {
+  list-style-type: decimal;
+  padding-left: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.markdown-container li {
+  margin-bottom: 0.5rem;
+}
+
+.markdown-container blockquote {
+  border-left: 4px solid var(--color-primary);
+  padding-left: 1rem;
+  font-style: italic;
+  margin: 1.5rem 0;
+  color: var(--color-muted-foreground);
+  background: var(--color-muted);
+  padding: 1rem;
+  border-radius: 0.5rem;
+}
+
+.markdown-container hr {
+  margin: 2rem 0;
+  border: 0;
+  border-top: 1px solid var(--color-border);
+}
+
+.markdown-container strong {
+  color: var(--color-primary);
+}

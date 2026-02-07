@@ -8,27 +8,21 @@ const getHeaders = (): HeadersInit => {
     };
 };
 
-export const login = async (username: string, password: string) => {
-    const formData = new URLSearchParams();
-    formData.append('username', username);
-    formData.append('password', password);
-
-    const response = await fetch(`${API_BASE_URL}/token`, {
+export const login = async (email: string, password: string) => {
+    const response = await fetch(`${API_BASE_URL}/auth/login`, {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: formData,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
     });
     if (!response.ok) throw new Error('Login failed');
     return response.json();
 };
 
-export const register = async (email: string, password: string, role = 'user') => {
-    const response = await fetch(`${API_BASE_URL}/users/`, {
+export const register = async (name: string, email: string, password: string, phoneNumber?: string) => {
+    const response = await fetch(`${API_BASE_URL}/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, role }),
+        body: JSON.stringify({ name, email, password, phoneNumber }),
     });
     if (!response.ok) throw new Error('Registration failed');
     return response.json();
@@ -47,7 +41,7 @@ export const fetchFarmDetails = async (id: string) => {
 };
 
 export const fetchStats = async () => {
-    const response = await fetch(`${API_BASE_URL}/stats`, { headers: getHeaders() });
+    const response = await fetch(`${API_BASE_URL}/farms/stats`, { headers: getHeaders() });
     if (!response.ok) throw new Error('Failed to fetch stats');
     return response.json();
 };
@@ -55,12 +49,12 @@ export const fetchStats = async () => {
 export const analyzeFarmImage = async (farmId: string, imageFile: File) => {
     const formData = new FormData();
     formData.append('farmId', farmId);
-    formData.append('file', imageFile);
+    formData.append('image', imageFile);
 
     const token = localStorage.getItem('token');
     const headers: HeadersInit = token ? { 'Authorization': `Bearer ${token}` } : {};
 
-    const response = await fetch(`${API_BASE_URL}/analyze`, {
+    const response = await fetch(`${API_BASE_URL}/analysis/analyze`, {
         method: 'POST',
         headers: headers,
         body: formData,
@@ -76,5 +70,11 @@ export const chatWithAI = async (message: string) => {
         body: JSON.stringify({ message }),
     });
     if (!response.ok) throw new Error('Chat failed');
+    return response.json();
+};
+
+export const fetchReports = async () => {
+    const response = await fetch(`${API_BASE_URL}/reports`, { headers: getHeaders() });
+    if (!response.ok) throw new Error('Failed to fetch reports');
     return response.json();
 };
