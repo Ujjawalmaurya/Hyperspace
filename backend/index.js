@@ -386,6 +386,7 @@ mongoose.connect(MONGODB_URI)
         console.log('Connected to MongoDB');
     })
     .catch(err => console.error('Could not connect to MongoDB', err));
+    
 
 async function seedData() {
     const count = await Farm.countDocuments();
