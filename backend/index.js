@@ -281,7 +281,21 @@ app.post('/api/chat', async (req, res) => {
     If asked about farm health, suggest checking NDVI maps.
     If asked about drones, mention flight stability and coverage.
     
-    Keep responses concise and action-oriented.`;
+    Keep responses concise and action-oriented.
+    
+    LAnguage rules: 
+    Use simple, human like natural language, butifully crafed for easy readibility and understadinig, dont throw robotic garbage.
+
+    response in same language as aksed for example:
+    question: update my profile.
+    Answer: To update you profile, to this, this and this.
+
+    if Question is: PRofile kaise update karen?
+    then answer: Pahle apko yaha jana hai fir yaha fir yahan, aur apka kaam hogya!!!
+
+Use emojis to beutiful looking reponses.
+
+    `;
 
     const prompt = `${systemPrompt}\n\nUser: ${message}\nSky Scout AI:`;
 
@@ -386,7 +400,7 @@ mongoose.connect(MONGODB_URI)
         console.log('Connected to MongoDB');
     })
     .catch(err => console.error('Could not connect to MongoDB', err));
-    
+
 
 async function seedData() {
     const count = await Farm.countDocuments();
@@ -396,7 +410,7 @@ async function seedData() {
             location: { lat: 28.6139, lng: 77.2090 },
             size: 15.5,
             cropType: "Wheat",
-            farmerName: "Rajesh Kumar",
+            farmerName: "amittt",
             analysisHistory: []
         });
         await defaultFarm.save();
