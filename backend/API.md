@@ -1,74 +1,94 @@
 # Backend API Documentation
 
 This file documents the API endpoints for the Hyperspace backend.
-Base URL: `http://localhost:5000` (or `http://localhost:5000/api` for api routes)
+Base URL: `http://localhost:5000`
 
 ## System
 
 ### Health Check
 - **URL:** `/`
 - **Method:** `GET`
-- **Description:** Checks if the API serves is running.
+- **Description:** Checks if the API service is running.
 - **Response:**
   - `200 OK`: "API is running..."
 
 ---
 
-## Farms
+## Authentication (`/api/auth`)
 
-### List All Farms
-- **URL:** `/api/farms`
-- **Method:** `GET`
-- **Description:** Retrieves a list of all farms.
-- **Response:** `Array` of Farm objects.
-
-### Create Farm
-- **URL:** `/api/farms`
+### Register
+- **URL:** `/register`
 - **Method:** `POST`
-- **Description:** Creates a new farm.
+- **Description:** Registers a new farmer.
 - **Body:**
   ```json
   {
-      "name": "String",
-      "location": { "lat": Number, "lng": Number },
-      "size": Number,
-      "cropType": "String",
-      "farmerName": "String"
+      "name": "Full Name",
+      "email": "email@example.com",
+      "password": "strongPassword",
+      "phoneNumber": "1234567890",
+      "farmLocation": { "address": "...", "lat": 0, "lng": 0 }
   }
   ```
-- **Response:** `201 Created` with the created Farm object.
+- **Response:** `201 Created` with token and user object.
 
-### Get Farm by ID
-- **URL:** `/api/farms/:id`
-- **Method:** `GET`
-- **Description:** Retrieves details of a specific farm.
-- **Response:** Farm object.
+### Login
+- **URL:** `/login`
+- **Method:** `POST`
+- **Description:** Authenticates a user.
+- **Response:** `200 OK` with token.
 
-### Get Dashboard Stats
-- **URL:** `/api/stats`
+### Get Me
+- **URL:** `/me`
 - **Method:** `GET`
-- **Description:** Retrieves aggregated statistics (total farms, area, average NDVI, etc.).
-- **Response:**
-  ```json
-  {
-      "totalFarms": Number,
-      "totalArea": String,
-      "avgNDVI": String,
-      "activeAlerts": Number,
-      "recentAnalyses": Number
-  }
-  ```
+- **Description:** Returns the current authenticated user.
+
+### Update Profile
+- **URL:** `/profile`
+- **Method:** `PUT`
+- **Description:** Updates the user's profile details.
 
 ---
 
-## Analysis
+## Farms (`/api/farms`)
 
-### Analyze Image
-- **URL:** `/api/analyze`
+### List All Farms
+- **URL:** `/`
+- **Method:** `GET`
+- **Description:** Retrieves a list of all farms.
+
+### Get Dashboard Stats
+- **URL:** `/stats`
+- **Method:** `GET`
+- **Description:** Retrieves aggregated statistics (total farms, area, etc.).
+
+### Get Farm by ID
+- **URL:** `/:id`
+- **Method:** `GET`
+- **Description:** Retrieves details of a specific farm.
+
+---
+
+## Analysis (`/api/analysis`)
+
+### Single Image Analysis
+- **URL:** `/analyze`
 - **Method:** `POST`
-- **Description:** Uploads an image for ML analysis.
-- **Content-Type:** `multipart/form-data`
-- **Body:**
-  - `image`: File (The image to analyze)
-  - `farmId`: String (ID of the farm)
-- **Response:** Analysis results (NDVI, disease detection, recommendations, etc.) which is also appended to the farm's history.
+- **Description:** Uploads one image for disease/NDVI analysis.
+- **Body:** `multipart/form-data` with `image` and `farmId`.
+
+### Batch Analysis & Report
+- **URL:** `/analyze-batch`
+- **Method:** `POST`
+- **Description:** Uploads multiple images, gets ML data, and generates a Gemini AI report.
+- **Body:** `multipart/form-data` with multiple `files`.
+
+---
+
+## AI Chat (`/api/chat`)
+
+### Chat with Sky Scout
+- **URL:** `/`
+- **Method:** `POST`
+- **Description:** Sends a message to the Gemini-powered agricultural assistant.
+- **Body:** `{ "message": "..." }`
