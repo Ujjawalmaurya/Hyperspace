@@ -38,6 +38,18 @@ async function processSingleFile(file, userId, farmId) {
         console.log(`[processSingleFile] Generating AI grids for: ${file.originalname}`);
         const ndviGrid = await generateVegetationGrid(ndviStats, 'NDVI');
 
+        // 5.1 Generate Full Farm Analysis (Health Score, Insights)
+        console.log(`[processSingleFile] Generating AI Farm Insights for: ${file.originalname}`);
+        const allStats = {
+            ndvi: ndviStats,
+            gndvi: gndviStats,
+            ndre: ndreStats,
+            savi: saviStats,
+            osavi: osaviStats
+        };
+        const { generateFarmAnalysis } = require('../utils/gemini');
+        const aiInsights = await generateFarmAnalysis(allStats);
+
         // 5b. Create Report Object (to be saved)
         console.log(`[processSingleFile] Saving report to DB for: ${file.originalname}`);
         const report = new VegetationReport({
@@ -52,8 +64,10 @@ async function processSingleFile(file, userId, farmId) {
             savi: { stats: saviStats },
             osavi: { stats: osaviStats },
             metadata: {
-                bbox: tiffData.bbox ? Array.from(tiffData.bbox) : []
-            }
+                bbox: tiffData.bbox ? Array.from(tiffData.bbox) : [],
+                crs: "EPSG:4326"
+            },
+            aiInsights: aiInsights
         });
 
         await report.save();
@@ -67,14 +81,19 @@ async function processSingleFile(file, userId, farmId) {
                     analysisHistory: {
                         date: new Date(),
                         ndvi: ndviStats ? ndviStats.mean : 0,
-                        healthStatus: (ndviStats && ndviStats.mean > 0.5) ? 'Good' : 'Needs Attention',
-                        diseaseDetected: false, // Placeholder
-                        imageUrl: `/uploads/${file.filename}`, // Simple path for now
+                        healthStatus: (aiInsights.healthScore > 75) ? 'Excellent' : (aiInsights.healthScore > 50 ? 'Good' : 'Needs Attention'),
+                        diseaseDetected: false,
+                        imageUrl: `/uploads/${file.filename}`,
                         metadata: {
                             reportId: report._id,
-                            ndviGrid: ndviGrid, // Explicitly save grid to farm history for easy frontend access
+                            ndviGrid: ndviGrid,
                             resolution: `${tiffData.width}x${tiffData.height}`
-                        }
+                        },
+                        aiSummary: {
+                            healthScore: aiInsights.healthScore,
+                            summary: aiInsights.summary
+                        },
+                        recommendations: aiInsights.recommendations
                     }
                 }
             });
@@ -83,6 +102,7 @@ async function processSingleFile(file, userId, farmId) {
         return {
             filename: file.originalname,
             reportId: report._id,
+            aiInsights: aiInsights,
             results: {
                 ndvi: { stats: ndviStats, grid: ndviGrid },
                 gndvi: gndviStats,

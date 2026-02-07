@@ -63,6 +63,21 @@ const vegetationSchema = new mongoose.Schema({
     metadata: {
         bbox: [Number], // [minX, minY, maxX, maxY]
         crs: String // Coordinate Reference System
+    },
+
+    // AI-Generated Insights
+    aiInsights: {
+        healthScore: Number, // 0-100
+        summary: String,
+        recommendations: [String],
+        indexAnalysis: {
+            ndvi: String,
+            gndvi: String,
+            ndre: String,
+            savi: String,
+            osavi: String
+        },
+        focusAreas: [String]
     }
 });
 

@@ -29,6 +29,11 @@ const farmSchema = new mongoose.Schema({
             chemical: String,
             urgency: String
         },
+
+        aiSummary: {
+            healthScore: Number,
+            summary: String
+        },
         metadata: mongoose.Schema.Types.Mixed
     }]
 });
