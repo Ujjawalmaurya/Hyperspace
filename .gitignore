@@ -14,6 +14,8 @@ misc/*
 *.jpg
 *.png
 *.jpeg
+*.tif
+*.tiff
 
 # zips
 *.zip

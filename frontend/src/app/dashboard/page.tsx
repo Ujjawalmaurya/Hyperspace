@@ -208,7 +208,7 @@ export default function Dashboard() {
                             className="aspect-video bg-[#0c1311] rounded-3xl relative overflow-hidden border border-white/5 flex items-center justify-center group cursor-pointer shadow-inner"
                         >
                             {/* Map Surface Simulation */}
-                            <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1500382017468-9049fed747ef?q=80&w=2832&auto=format&fit=crop')] bg-cover bg-center brightness-[0.3] group-hover:scale-105 transition-transform duration-[10s]" />
+                            <div className="absolute inset-0 bg-[url('/ortho.webp')] bg-cover bg-center brightness-[0.3] group-hover:scale-105 transition-transform duration-[10s]" />
 
                             {/* Scanning Laser */}
                             <motion.div

@@ -81,10 +81,21 @@ export default function MapsPage() {
                 </div>
             </div>
 
-            <div className="flex-1 glass rounded-3xl relative overflow-hidden border border-border/50 group bg-[#0c1311] shadow-2xl">
-                <div className="absolute inset-0 grid grid-cols-4 grid-rows-4 gap-1 p-4">
+            <div className="flex-1 glass rounded-3xl relative overflow-hidden border border-border/50 group bg-[#020617] shadow-2xl">
+                {/* Global Spectral Overlay Filter (Subtle ambient) */}
+                <div className={`absolute inset-0 transition-all duration-500 pointer-events-none z-10 ${activeLayer === 'ndvi' ? 'bg-green-500/5' :
+                        activeLayer === 'thermal' ? 'bg-blue-500/5' :
+                            'bg-transparent'
+                    }`} />
+
+                <div className="absolute inset-0 grid grid-cols-4 grid-rows-4 gap-2 p-6">
+                    {/* Scanning Animation */}
+                    <div className="block-scan-overlay" />
 
                     {[...Array(16)].map((_, i) => {
+                        const row = Math.floor(i / 4);
+                        const col = i % 4;
+
                         // Use AI-generated grid if available, otherwise fallback to baseNDVI logic
                         let zoneValue = 0.5; // Default neutral
 
@@ -96,20 +107,29 @@ export default function MapsPage() {
                             zoneValue = Math.max(0, Math.min(1, baseNDVI + (Math.sin(i) * 0.1)));
                         }
 
-                        let bgColor = 'bg-primary/20';
+                        let spectralFilter = 'bg-transparent';
+                        let borderColor = 'border-white/10';
+
                         if (activeLayer === 'ndvi') {
-                            // NDVI Color Scale: 
-                            // > 0.7 (Healthy) -> Green
-                            // 0.4 - 0.7 (Moderate) -> Yellow
-                            // < 0.4 (Stressed) -> Red
-                            if (zoneValue > 0.7) bgColor = `bg-green-500/${Math.floor(zoneValue * 80 + 20)}`;
-                            else if (zoneValue > 0.4) bgColor = `bg-yellow-500/${Math.floor(zoneValue * 80 + 20)}`;
-                            else bgColor = `bg-red-500/${Math.floor((1 - zoneValue) * 80 + 20)}`;
+                            if (zoneValue > 0.7) {
+                                spectralFilter = `bg-green-500/20`;
+                                borderColor = 'border-green-500/30';
+                            }
+                            else if (zoneValue > 0.4) {
+                                spectralFilter = `bg-yellow-500/20`;
+                                borderColor = 'border-yellow-500/30';
+                            }
+                            else {
+                                spectralFilter = `bg-red-500/20`;
+                                borderColor = 'border-red-500/30';
+                            }
 
                         } else if (activeLayer === 'thermal') {
-                            bgColor = zoneValue > 0.6 ? 'bg-red-500/40' : 'bg-blue-500/40';
+                            spectralFilter = zoneValue > 0.6 ? 'bg-red-500/30' : 'bg-blue-500/30';
+                            borderColor = zoneValue > 0.6 ? 'border-red-500/30' : 'border-blue-500/30';
                         } else if (activeLayer === 'pest') {
-                            bgColor = i % 5 === 0 ? 'bg-red-600/50 pulse-error' : 'bg-primary/5';
+                            spectralFilter = i % 5 === 0 ? 'bg-red-600/30 pulse-error' : 'bg-transparent';
+                            borderColor = i % 5 === 0 ? 'border-red-500/50' : 'border-white/10';
                         }
 
                         return (
@@ -117,8 +137,31 @@ export default function MapsPage() {
                                 key={i}
                                 onMouseEnter={() => setHoveredZone(i)}
                                 onMouseLeave={() => setHoveredZone(null)}
-                                className={`relative rounded-lg border border-white/5 transition-all cursor-crosshair ${bgColor} ${hoveredZone === i ? 'border-primary ring-2 ring-primary/20 z-10 scale-[1.01]' : ''}`}
+                                className={`block-grid-cell rounded-xl border transition-all cursor-crosshair overflow-hidden group/cell ${borderColor} ${hoveredZone === i ? 'ring-2 ring-primary/40 z-20 scale-[1.02] shadow-2xl' : 'hover:scale-[1.01]'}`}
+                                style={{
+                                    backgroundColor: '#0f172a',
+                                }}
                             >
+                                {/* The Ortho Slice for this block */}
+                                <div
+                                    className="absolute inset-0 transition-all duration-500 group-hover/cell:scale-110"
+                                    style={{
+                                        backgroundImage: 'url("/ortho.webp")',
+                                        backgroundSize: '400% 400%',
+                                        backgroundPosition: `${(col * 100) / 3}% ${(row * 100) / 3}%`,
+                                        filter: 'contrast(1.2) brightness(1.1)',
+                                        opacity: activeLayer === 'rgb' ? 1 : 0.7
+                                    }}
+                                />
+
+                                {/* Spectral Overlay per block */}
+                                <div className={`absolute inset-0 transition-opacity duration-300 ${spectralFilter}`} />
+
+                                {/* Coordinate indicator */}
+                                <div className="absolute bottom-2 right-2 px-1.5 py-0.5 rounded bg-black/60 backdrop-blur-sm border border-white/5 opacity-40 group-hover/cell:opacity-100 transition-opacity">
+                                    <span className="text-[8px] font-black text-white/80 tracking-widest">{String.fromCharCode(65 + row)}{col + 1}</span>
+                                </div>
+
                                 {hoveredZone === i && (
                                     <div className="absolute top-2 left-full ml-4 glass p-4 rounded-2xl border border-primary/40 z-50 min-w-[180px] shadow-2xl animate-in slide-in-from-left-2 transition-all">
                                         <div className="flex justify-between items-start mb-3">
