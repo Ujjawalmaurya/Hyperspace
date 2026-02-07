@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     Settings,
     User,
@@ -12,13 +12,111 @@ import {
     Save,
     Drone,
     CheckCircle,
-    Info
+    Info,
+    Loader2,
+    AlertCircle
 } from 'lucide-react';
 import { useLanguage } from '@/hooks/useLanguage';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function SettingsPage() {
     const { t, lang, setLang } = useLanguage();
+    const { user, token, updateUser } = useAuth();
     const [activeTab, setActiveTab] = useState('profile');
+    const [isLoading, setIsLoading] = useState(false);
+    const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+
+    // Profile State
+    const [profileData, setProfileData] = useState({
+        name: '',
+        email: '',
+        farmLocation: '',
+        phoneNumber: ''
+    });
+
+    // Password State
+    const [passwordData, setPasswordData] = useState({
+        currentPassword: '',
+        newPassword: ''
+    });
+
+    useEffect(() => {
+        if (user) {
+            setProfileData({
+                name: user.name || '',
+                email: user.email || '',
+                farmLocation: user.farmLocation?.address || '',
+                phoneNumber: user.phoneNumber || ''
+            });
+        }
+    }, [user]);
+
+    const handleProfileSave = async () => {
+        setIsLoading(true);
+        setMessage(null);
+        try {
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+            const response = await fetch(`${apiUrl}/auth/profile`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    name: profileData.name,
+                    email: profileData.email,
+                    phoneNumber: profileData.phoneNumber,
+                    farmLocation: { address: profileData.farmLocation }
+                })
+            });
+
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.error || 'Failed to update profile');
+
+            setMessage({ type: 'success', text: 'Profile updated successfully' });
+            if (data.user) {
+                updateUser(data.user);
+            }
+        } catch (error: any) {
+            setMessage({ type: 'error', text: error.message });
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handlePasswordSave = async () => {
+        if (!passwordData.currentPassword || !passwordData.newPassword) {
+            setMessage({ type: 'error', text: 'Please fill in all password fields' });
+            return;
+        }
+
+        setIsLoading(true);
+        setMessage(null);
+        try {
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+            const response = await fetch(`${apiUrl}/auth/change-password`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    currentPassword: passwordData.currentPassword,
+                    newPassword: passwordData.newPassword
+                })
+            });
+
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.error || 'Failed to change password');
+
+            setMessage({ type: 'success', text: 'Password updated successfully' });
+            setPasswordData({ currentPassword: '', newPassword: '' });
+        } catch (error: any) {
+            setMessage({ type: 'error', text: error.message });
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
     const tabs = [
         { id: 'profile', icon: User, label: "Profile" },
@@ -36,19 +134,40 @@ export default function SettingsPage() {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="space-y-2">
                                 <label className="text-sm font-medium text-foreground/70">Full Name</label>
-                                <input type="text" defaultValue="Rajesh Kumar" className="w-full bg-muted/50 border border-border/50 rounded-xl py-2 px-4 focus:border-primary/50 outline-none text-foreground" />
+                                <input
+                                    type="text"
+                                    value={profileData.name}
+                                    onChange={(e) => setProfileData({ ...profileData, name: e.target.value })}
+                                    className="w-full bg-muted/50 border border-border/50 rounded-xl py-2 px-4 focus:border-primary/50 outline-none text-foreground"
+                                />
                             </div>
                             <div className="space-y-2">
                                 <label className="text-sm font-medium text-foreground/70">Email Address</label>
-                                <input type="email" defaultValue="rajesh@farm.com" className="w-full bg-muted/50 border border-border/50 rounded-xl py-2 px-4 focus:border-primary/50 outline-none text-foreground" />
+                                <input
+                                    type="email"
+                                    value={profileData.email}
+                                    onChange={(e) => setProfileData({ ...profileData, email: e.target.value })}
+                                    className="w-full bg-muted/50 border border-border/50 rounded-xl py-2 px-4 focus:border-primary/50 outline-none text-foreground"
+                                />
                             </div>
                             <div className="space-y-2">
                                 <label className="text-sm font-medium text-foreground/70">Farm Location</label>
-                                <input type="text" defaultValue="Punjab, India" className="w-full bg-muted/50 border border-border/50 rounded-xl py-2 px-4 focus:border-primary/50 outline-none text-foreground" />
+                                <input
+                                    type="text"
+                                    value={profileData.farmLocation}
+                                    onChange={(e) => setProfileData({ ...profileData, farmLocation: e.target.value })}
+                                    className="w-full bg-muted/50 border border-border/50 rounded-xl py-2 px-4 focus:border-primary/50 outline-none text-foreground"
+                                />
                             </div>
                             <div className="space-y-2">
                                 <label className="text-sm font-medium text-foreground/70">Phone Number</label>
-                                <input type="text" defaultValue="+91 98765 43210" className="w-full bg-muted/50 border border-border/50 rounded-xl py-2 px-4 focus:border-primary/50 outline-none text-foreground" />
+                                <input
+                                    type="text"
+                                    value={profileData.phoneNumber}
+                                    onChange={(e) => setProfileData({ ...profileData, phoneNumber: e.target.value })}
+                                    className="w-full bg-muted/50 border border-border/50 rounded-xl py-2 px-4 focus:border-primary/50 outline-none text-foreground"
+                                    placeholder="+91 98765 43210"
+                                />
                             </div>
                         </div>
                     </div>
@@ -78,13 +197,32 @@ export default function SettingsPage() {
                     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
                         <div className="space-y-4">
                             <div className="space-y-2">
-                                <label className="text-sm font-medium text-foreground/70">Current Password</label>
-                                <input type="password" placeholder="••••••••" className="w-full bg-muted/50 border border-border/50 rounded-xl py-2 px-4 focus:border-primary/50 outline-none text-foreground" />
+                                <label className="text-sm font-medium text-foreground/70">Old Password</label>
+                                <input
+                                    type="password"
+                                    value={passwordData.currentPassword}
+                                    onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
+                                    placeholder="••••••••"
+                                    className="w-full bg-muted/50 border border-border/50 rounded-xl py-2 px-4 focus:border-primary/50 outline-none text-foreground"
+                                />
                             </div>
                             <div className="space-y-2">
                                 <label className="text-sm font-medium text-foreground/70">New Password</label>
-                                <input type="password" placeholder="Min 8 characters" className="w-full bg-muted/50 border border-border/50 rounded-xl py-2 px-4 focus:border-primary/50 outline-none text-foreground" />
+                                <input
+                                    type="password"
+                                    value={passwordData.newPassword}
+                                    onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
+                                    placeholder="Min 6 characters"
+                                    className="w-full bg-muted/50 border border-border/50 rounded-xl py-2 px-4 focus:border-primary/50 outline-none text-foreground"
+                                />
                             </div>
+                        </div>
+                        <div className="flex justify-end">
+                            {/* Button is handled in main layout now, or specific save button here? 
+                                 The design has a main save button at top right. 
+                                 We need to make sure that button triggers the correct function.
+                                 Since the button is outside the switch, we need a common handler or conditionally render the button.
+                              */}
                         </div>
                         <div className="p-4 bg-orange-500/10 border border-orange-500/20 rounded-2xl flex gap-3">
                             <Shield className="w-5 h-5 text-orange-400 shrink-0" />
@@ -166,6 +304,21 @@ export default function SettingsPage() {
         }
     };
 
+    const handleSave = () => {
+        if (activeTab === 'profile') {
+            handleProfileSave();
+        } else if (activeTab === 'security') {
+            handlePasswordSave();
+        }
+    };
+
+    const isSaveDisabled = () => {
+        if (activeTab === 'security') {
+            return !passwordData.currentPassword || !passwordData.newPassword || isLoading;
+        }
+        return isLoading;
+    }
+
     return (
         <div className="space-y-8 pb-12">
             <div>
@@ -173,15 +326,22 @@ export default function SettingsPage() {
                 <p className="text-foreground/60 text-sm">Manage your account and drone hardware configurations.</p>
             </div>
 
+            {message && (
+                <div className={`p-4 rounded-xl flex items-center gap-2 ${message.type === 'success' ? 'bg-green-500/10 border border-green-500/20 text-green-400' : 'bg-red-500/10 border border-red-500/20 text-red-400'}`}>
+                    {message.type === 'success' ? <CheckCircle className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
+                    <p className="text-sm">{message.text}</p>
+                </div>
+            )}
+
             <div className="flex flex-col lg:flex-row gap-8">
                 <div className="w-full lg:w-64 space-y-1">
                     {tabs.map((tab) => (
                         <button
                             key={tab.id}
-                            onClick={() => setActiveTab(tab.id)}
-                            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === tab.id
-                                ? 'bg-primary text-black font-bold shadow-lg shadow-primary/20'
-                                : 'text-foreground/70 hover:bg-muted font-medium'
+                            onClick={() => { setActiveTab(tab.id); setMessage(null); }}
+                            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all border-2 ${activeTab === tab.id
+                                ? 'bg-primary/10 border-primary text-primary font-black shadow-[0_0_15px_rgba(34,197,94,0.3)] scale-[1.02]'
+                                : 'text-foreground/60 border-transparent hover:bg-muted font-bold hover:text-foreground'
                                 }`}
                         >
                             <tab.icon className={`w-5 h-5 ${activeTab === tab.id ? 'stroke-[2.5px]' : ''}`} />
@@ -193,10 +353,16 @@ export default function SettingsPage() {
                 <div className="flex-1 glass p-8 rounded-3xl border border-border/50 relative">
                     <div className="mb-8 flex justify-between items-center">
                         <h2 className="text-xl font-bold capitalize text-foreground">{activeTab} Settings</h2>
-                        <button className="flex items-center gap-2 bg-primary/10 hover:bg-primary/20 text-primary px-4 py-2 rounded-xl text-sm font-bold border border-primary/20 transition-all">
-                            <Save className="w-4 h-4" />
-                            Save
-                        </button>
+                        {(activeTab === 'profile' || activeTab === 'security') && (
+                            <button
+                                onClick={handleSave}
+                                disabled={isSaveDisabled()}
+                                className="flex items-center gap-2 bg-primary/10 hover:bg-primary/20 text-primary px-4 py-2 rounded-xl text-sm font-bold border border-primary/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                                Save
+                            </button>
+                        )}
                     </div>
                     {renderContent()}
                 </div>
@@ -204,3 +370,4 @@ export default function SettingsPage() {
         </div>
     );
 }
+

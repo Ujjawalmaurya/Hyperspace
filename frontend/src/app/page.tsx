@@ -73,7 +73,7 @@ export default function LandingPage() {
             className="flex flex-col md:flex-row items-center justify-center gap-6"
           >
             <button
-              onClick={() => router.push('/dashboard')}
+              onClick={() => router.push('/login')}
               className="group relative px-10 py-5 bg-primary text-black rounded-2xl font-black text-xl hover:scale-105 transition-all duration-300 shadow-[0_20px_40px_rgba(34,197,94,0.3)] active:scale-95 overflow-hidden"
             >
               <div className="absolute inset-0 bg-white/20 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 skew-x-12" />
@@ -299,7 +299,7 @@ export default function LandingPage() {
                 Join 500+ forward-thinking farmers who are already saving thousands and protecting their future.
               </motion.p>
               <button
-                onClick={() => router.push('/dashboard')}
+                onClick={() => router.push('/login')}
                 className="group relative px-12 py-6 bg-black text-white rounded-2xl font-black text-2xl hover:scale-105 transition-all duration-300 shadow-2xl active:scale-95"
               >
                 START YOUR SCAN NOW

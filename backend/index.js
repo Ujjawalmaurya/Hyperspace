@@ -10,13 +10,70 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const axios = require('axios');
 const FormData = require('form-data');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 require('dotenv').config();
 
 const app = express();
 
-// In-memory user store
-const users = [];
+// JWT Secret
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-this-in-production';
+
+// Gemini AI Setup
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+
+// User Schema (will be defined after MongoDB connection)
+// User Schema
+const userSchema = new mongoose.Schema({
+    name: { type: String, required: true },
+    email: { type: String, required: true, unique: true },
+    password: { type: String, required: true },
+    phoneNumber: { type: String },
+    farmLocation: {
+        address: String,
+        lat: Number,
+        lng: Number
+    },
+    createdAt: { type: Date, default: Date.now }
+});
+
+const User = mongoose.model('User', userSchema);
+
+// Farm Schema
+const farmSchema = new mongoose.Schema({
+    name: String,
+    location: {
+        lat: Number,
+        lng: Number
+    },
+    size: Number,
+    cropType: String,
+    farmerName: String,
+    analysisHistory: [{
+        date: { type: Date, default: Date.now },
+        ndvi: Number,
+        healthStatus: String,
+        diseaseDetected: Boolean,
+        detections: [{
+            label: String,
+            confidence: Number,
+            severity: String,
+            box: [Number]
+        }],
+        yieldPrediction: Number,
+        imageUrl: String,
+        recommendations: [String],
+        sprayPlan: {
+            area: String,
+            dosage: String,
+            chemical: String,
+            urgency: String
+        },
+        metadata: mongoose.Schema.Types.Mixed
+    }]
+});
+
+const Farm = mongoose.model('Farm', farmSchema);
 
 const uploadDir = 'uploads';
 if (!fs.existsSync(uploadDir)) {
@@ -67,10 +124,18 @@ app.get('/', (req, res) => {
 // Auth Routes
 app.post('/api/auth/register', async (req, res) => {
     try {
-        const { username, email, password } = req.body;
+        const { name, email, password, phoneNumber, farmLocation } = req.body;
 
-        if (!username || !email || !password) {
-            return res.status(400).json({ error: 'All fields required' });
+
+        console.log('Register attempt:', { name, email, passwordExists: !!password, farmLocation });
+
+        const missing = [];
+        if (!name) missing.push('name');
+        if (!email) missing.push('email');
+        if (!password) missing.push('password');
+
+        if (missing.length > 0) {
+            return res.status(400).json({ error: `Missing required fields: ${missing.join(', ')}` });
         }
 
         if (password.length < 6) {
@@ -78,28 +143,28 @@ app.post('/api/auth/register', async (req, res) => {
         }
 
         // Check if user exists
-        const existingUser = users.find(u => u.email === email);
+        const existingUser = await User.findOne({ email });
         if (existingUser) {
-            return res.status(400).json({ error: 'User already exists' });
+            return res.status(400).json({ error: 'User already exists with this email' });
         }
 
         // Hash password
         const hashedPassword = await bcrypt.hash(password, 10);
 
         // Create user
-        const user = {
-            id: Date.now().toString(),
-            username,
+        const user = new User({
+            name,
             email,
             password: hashedPassword,
-            createdAt: new Date()
-        };
+            phoneNumber,
+            farmLocation: farmLocation || {}
+        });
 
-        users.push(user);
+        await user.save();
 
         // Generate token
         const token = jwt.sign(
-            { id: user.id, email: user.email, username: user.username },
+            { id: user._id, email: user.email, name: user.name },
             JWT_SECRET,
             { expiresIn: '24h' }
         );
@@ -108,9 +173,10 @@ app.post('/api/auth/register', async (req, res) => {
             message: 'User registered successfully',
             token,
             user: {
-                id: user.id,
-                username: user.username,
-                email: user.email
+                name: user.name,
+                email: user.email,
+                phoneNumber: user.phoneNumber,
+                farmLocation: user.farmLocation
             }
         });
     } catch (err) {
@@ -127,7 +193,7 @@ app.post('/api/auth/login', async (req, res) => {
         }
 
         // Find user
-        const user = users.find(u => u.email === email);
+        const user = await User.findOne({ email });
         if (!user) {
             return res.status(401).json({ error: 'Invalid credentials' });
         }
@@ -135,12 +201,12 @@ app.post('/api/auth/login', async (req, res) => {
         // Check password
         const validPassword = await bcrypt.compare(password, user.password);
         if (!validPassword) {
-            return res.status(401).json({ error: 'Invalid credentials' });
+            return res.status(401).json({ error: 'Wrong password' });
         }
 
         // Generate token
         const token = jwt.sign(
-            { id: user.id, email: user.email, username: user.username },
+            { id: user._id, email: user.email, name: user.name },
             JWT_SECRET,
             { expiresIn: '24h' }
         );
@@ -149,9 +215,10 @@ app.post('/api/auth/login', async (req, res) => {
             message: 'Login successful',
             token,
             user: {
-                id: user.id,
-                username: user.username,
-                email: user.email
+                name: user.name,
+                email: user.email,
+                phoneNumber: user.phoneNumber,
+                farmLocation: user.farmLocation
             }
         });
     } catch (err) {
@@ -159,57 +226,166 @@ app.post('/api/auth/login', async (req, res) => {
     }
 });
 
-app.get('/api/auth/me', authenticateToken, (req, res) => {
-    res.json({
-        user: {
-            id: req.user.id,
-            username: req.user.username,
-            email: req.user.email
+app.get('/api/auth/me', authenticateToken, async (req, res) => {
+    try {
+        const user = await User.findById(req.user.id).select('-password');
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
         }
-    });
+        res.json({ user });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.put('/api/auth/profile', authenticateToken, async (req, res) => {
+    try {
+        const { name, email, phoneNumber, farmLocation } = req.body;
+        const user = await User.findById(req.user.id);
+
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        if (name) user.name = name;
+        if (email) user.email = email; // Note: In a real app we should check if email is taken by another user
+        if (phoneNumber) user.phoneNumber = phoneNumber;
+        if (farmLocation) user.farmLocation = { ...user.farmLocation, ...farmLocation };
+
+        await user.save();
+
+        res.json({
+            message: 'Profile updated successfully',
+            user: {
+                name: user.name,
+                email: user.email,
+                phoneNumber: user.phoneNumber,
+                farmLocation: user.farmLocation
+            }
+        });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// AI Chat Route
+app.post('/api/chat', async (req, res) => {
+    const { message } = req.body;
+    if (!message) {
+        return res.status(400).json({ error: 'Message is required' });
+    }
+
+    const systemPrompt = `You are the Sky Scouts AI, a precision agriculture assistant. 
+    Your goal is to help farmers monitor crop health, analyze NDVI maps, and manage drone missions.
+    Be helpful, technical yet accessible, and professional. 
+    If asked about farm health, suggest checking NDVI maps.
+    If asked about drones, mention flight stability and coverage.
+    
+    Keep responses concise and action-oriented.`;
+
+    const prompt = `${systemPrompt}\n\nUser: ${message}\nSky Scout AI:`;
+
+    try {
+
+        const result = await model.generateContent(prompt);
+        const responseText = result.response.text();
+
+        // Simulate some actions based on response content
+        const actions = [];
+        if (responseText.toLowerCase().includes('ndvi') || responseText.toLowerCase().includes('map')) {
+            actions.push({ label: 'View NDVI Map', value: 'Show me the latest NDVI map' });
+        }
+        if (responseText.toLowerCase().includes('drone') || responseText.toLowerCase().includes('fly')) {
+            actions.push({ label: 'Launch Drone', value: 'Start a new drone mission' });
+        }
+        if (responseText.toLowerCase().includes('pest') || responseText.toLowerCase().includes('disease')) {
+            actions.push({ label: 'Check Alerts', value: 'Show me pest alerts' });
+        }
+
+        res.json({
+            response: responseText,
+            actions: actions
+        });
+    } catch (err) {
+        console.error('Gemini SDK Error, attempting fallback...', err.message);
+        try {
+            // Fallback to direct fetch if SDK fails
+            const response = await axios.post(
+                `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
+                {
+                    contents: [{
+                        parts: [{
+                            text: `${systemPrompt}\n\nUser: ${message}\nSky Scout AI:`
+                        }]
+                    }]
+                }
+            );
+
+            const responseText = response.data.candidates[0].content.parts[0].text;
+            const actions = [];
+            if (responseText.toLowerCase().includes('ndvi') || responseText.toLowerCase().includes('map')) {
+                actions.push({ label: 'View NDVI Map', value: 'Show me the latest NDVI map' });
+            }
+            if (responseText.toLowerCase().includes('drone') || responseText.toLowerCase().includes('fly')) {
+                actions.push({ label: 'Launch Drone', value: 'Start a new drone mission' });
+            }
+            if (responseText.toLowerCase().includes('pest') || responseText.toLowerCase().includes('disease')) {
+                actions.push({ label: 'Check Alerts', value: 'Show me pest alerts' });
+            }
+
+            return res.json({
+                response: responseText,
+                actions: actions
+            });
+        } catch (fallbackErr) {
+            console.error('Gemini Fallback Error:', fallbackErr.response?.data || fallbackErr.message);
+            res.status(500).json({ error: 'AI failed to respond' });
+        }
+    }
+});
+
+app.post('/api/auth/change-password', authenticateToken, async (req, res) => {
+    try {
+        const { currentPassword, newPassword } = req.body;
+
+        if (!currentPassword || !newPassword) {
+            return res.status(400).json({ error: 'Both current and new passwords are required' });
+        }
+
+        if (newPassword.length < 6) {
+            return res.status(400).json({ error: 'New password must be at least 6 characters' });
+        }
+
+        const user = await User.findById(req.user.id);
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        // Check current password
+        const isMatch = await bcrypt.compare(currentPassword, user.password);
+        if (!isMatch) {
+            return res.status(401).json({ error: 'Wrong password' });
+        }
+
+        // Hash new password
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+        user.password = hashedPassword;
+        await user.save();
+
+        res.json({ message: 'Password updated successfully' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 const MONGODB_URI = process.env.MONGODB_URI;
 const ML_SERVICE_URL = process.env.ML_SERVICE_URL;
 
 mongoose.connect(MONGODB_URI)
-    .then(() => console.log('Connected to MongoDB'))
+    .then(() => {
+        console.log('Connected to MongoDB');
+    })
     .catch(err => console.error('Could not connect to MongoDB', err));
-
-const farmSchema = new mongoose.Schema({
-    name: String,
-    location: {
-        lat: Number,
-        lng: Number
-    },
-    size: Number,
-    cropType: String,
-    farmerName: String,
-    analysisHistory: [{
-        date: { type: Date, default: Date.now },
-        ndvi: Number,
-        healthStatus: String,
-        diseaseDetected: Boolean,
-        detections: [{
-            label: String,
-            confidence: Number,
-            severity: String,
-            box: [Number]
-        }],
-        yieldPrediction: Number,
-        imageUrl: String,
-        recommendations: [String],
-        sprayPlan: {
-            area: String,
-            dosage: String,
-            chemical: String,
-            urgency: String
-        },
-        metadata: mongoose.Schema.Types.Mixed
-    }]
-});
-
-const Farm = mongoose.model('Farm', farmSchema);
 
 async function seedData() {
     const count = await Farm.countDocuments();

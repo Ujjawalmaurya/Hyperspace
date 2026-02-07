@@ -2,18 +2,30 @@
 import React from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
-import { Sprout, Search, Languages } from 'lucide-react';
+import { Sprout, Search, Languages, LogOut, User } from 'lucide-react';
 import { useLanguage } from '@/hooks/useLanguage';
+import { useAuth } from '@/contexts/AuthContext';
 import ThemeToggle from './ThemeToggle';
 
 export default function Navbar() {
     const { lang, setLang, t } = useLanguage();
+    const { user, logout } = useAuth();
     const router = useRouter();
     const pathname = usePathname();
 
     const handleLaunch = () => {
         router.push('/analyze');
     };
+
+    const handleLogout = () => {
+        logout();
+        router.push('/');
+    };
+
+    // Don't show navbar on login/signup pages
+    if (pathname === '/login' || pathname === '/signup') {
+        return null;
+    }
 
     return (
         <nav className="fixed top-0 left-0 right-0 z-50 glass border-b border-border/50">
@@ -24,7 +36,7 @@ export default function Navbar() {
                         <span className="text-xl font-bold gradient-text underline-offset-4 decoration-primary">Sky Scouts</span>
                     </Link>
 
-                    {pathname !== '/' && (
+                    {pathname !== '/' && user && (
                         <div className="hidden md:block">
                             <div className="flex items-baseline space-x-8">
                                 <Link href="/dashboard" className="text-foreground/80 hover:text-primary px-3 py-2 text-sm font-medium transition-colors">{t('dashboard')}</Link>
@@ -45,24 +57,56 @@ export default function Navbar() {
                         </button>
 
                         {pathname === '/' ? (
-                            <button
-                                onClick={() => router.push('/dashboard')}
-                                className="bg-primary hover:bg-primary-dark text-black font-bold py-2 px-4 rounded-xl transition-all shadow-lg shadow-primary/20 active:scale-95"
-                            >
-                                Login / Dashboard
-                            </button>
+                            user ? (
+                                <button
+                                    onClick={() => router.push('/dashboard')}
+                                    className="bg-primary hover:bg-primary-dark text-black font-bold py-2 px-4 rounded-xl transition-all shadow-lg shadow-primary/20 active:scale-95"
+                                >
+                                    Dashboard
+                                </button>
+                            ) : (
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={() => router.push('/login')}
+                                        className="glass border border-primary/50 text-primary font-bold py-2 px-4 rounded-xl transition-all hover:bg-primary/10 active:scale-95"
+                                    >
+                                        Login
+                                    </button>
+                                    <button
+                                        onClick={() => router.push('/signup')}
+                                        className="bg-primary hover:bg-primary-dark text-black font-bold py-2 px-4 rounded-xl transition-all shadow-lg shadow-primary/20 active:scale-95"
+                                    >
+                                        Sign Up
+                                    </button>
+                                </div>
+                            )
                         ) : (
                             <>
                                 <ThemeToggle />
-                                <button className="p-2 text-foreground/70 hover:text-primary transition-colors">
-                                    <Search className="w-5 h-5" />
-                                </button>
-                                <button
-                                    onClick={handleLaunch}
-                                    className="bg-primary hover:bg-primary-dark text-black font-bold py-2 px-4 rounded-xl transition-all shadow-lg shadow-primary/20 active:scale-95"
-                                >
-                                    {t('launchDrone')}
-                                </button>
+                                {user && (
+                                    <>
+                                        <button className="p-2 text-foreground/70 hover:text-primary transition-colors">
+                                            <Search className="w-5 h-5" />
+                                        </button>
+                                        <button
+                                            onClick={handleLaunch}
+                                            className="bg-primary hover:bg-primary-dark text-black font-bold py-2 px-4 rounded-xl transition-all shadow-lg shadow-primary/20 active:scale-95"
+                                        >
+                                            {t('launchDrone')}
+                                        </button>
+                                        <div className="flex items-center gap-2 glass px-3 py-1.5 rounded-lg border border-border/50">
+                                            <User className="w-4 h-4 text-primary" />
+                                            <span className="text-sm font-medium">{user.name}</span>
+                                        </div>
+                                        <button
+                                            onClick={handleLogout}
+                                            className="p-2 text-foreground/70 hover:text-red-500 transition-colors"
+                                            title="Logout"
+                                        >
+                                            <LogOut className="w-5 h-5" />
+                                        </button>
+                                    </>
+                                )}
                             </>
                         )}
                     </div>

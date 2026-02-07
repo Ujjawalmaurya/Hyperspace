@@ -13,9 +13,14 @@ interface Message {
     actions?: { label: string; value: string; icon: any }[];
 }
 
+import { usePathname } from 'next/navigation';
+
 export default function Chatbot() {
+    const pathname = usePathname();
     const [isOpen, setIsOpen] = useState(false);
     const [isMinimized, setIsMinimized] = useState(false);
+
+
     const [messages, setMessages] = useState<Message[]>([
         {
             id: '1',
@@ -115,6 +120,8 @@ export default function Chatbot() {
             handleSend();
         }
     };
+
+    if (pathname === '/login' || pathname === '/signup' || pathname === '/') return null;
 
     return (
         <>
