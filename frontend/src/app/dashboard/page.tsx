@@ -16,7 +16,7 @@ import {
 import { useRouter } from 'next/navigation';
 import DashboardCard from '@/components/DashboardCard';
 import { useLanguage } from '@/hooks/useLanguage';
-import { fetchStats } from '@/lib/api';
+import { fetchStats, fetchVegetationReports } from '@/lib/api';
 import { motion, AnimatePresence } from 'framer-motion';
 import ProtectedRoute from '@/components/ProtectedRoute';
 
@@ -24,21 +24,43 @@ export default function Dashboard() {
     const { t } = useLanguage();
     const router = useRouter();
     const [stats, setStats] = useState<any>(null);
+    const [reports, setReports] = useState<any[]>([]); // Added reports state
     const [loading, setLoading] = useState(true);
     const [weather, setWeather] = useState<{ temp: number; description: string } | null>(null);
 
     useEffect(() => {
-        const loadStats = async () => {
+        const loadData = async () => { // Renamed loadStats to loadData
             try {
-                const data = await fetchStats();
-                setStats(data);
+                // Fetch real vegetation reports
+                const reportsData = await fetchVegetationReports();
+                setReports(reportsData);
+
+                // Calculate aggregate stats from real data
+                if (reportsData.length > 0) {
+                    const totalNdvi = reportsData.reduce((acc: number, curr: any) => acc + (curr.ndvi?.stats?.mean || 0), 0);
+                    const avgNdvi = (totalNdvi / reportsData.length).toFixed(2);
+
+                    const criticalCount = reportsData.filter((r: any) => r.aiInsights?.healthScore < 50).length;
+
+                    setStats({
+                        avgNDVI: avgNdvi,
+                        totalArea: (reportsData.length * 12.5).toFixed(1), // Mock area per report for now
+                        activeAlerts: criticalCount
+                    });
+                } else {
+                    setStats({
+                        avgNDVI: "0.00",
+                        totalArea: "0.0",
+                        activeAlerts: 0
+                    });
+                }
             } catch (error) {
-                console.error('Failed to load stats:', error);
+                console.error('Failed to load data:', error);
             } finally {
                 setLoading(false);
             }
         };
-        loadStats();
+        loadData();
     }, []);
 
     useEffect(() => {
@@ -87,7 +109,7 @@ export default function Dashboard() {
     };
 
     const handleExport = () => {
-        const data = `Metric,Value\nAvg NDVI,${stats?.avgNDVI}\nTotal Area,${stats?.totalArea} ha\nAlerts,${stats?.activeAlerts}\nDate,${new Date().toLocaleDateString()}`;
+        const data = `Metric,Value\nAvg NDVI,${stats?.avgNDVI}\nTotal Reports,${reports.length}\nAlerts,${stats?.activeAlerts}\nDate,${new Date().toLocaleDateString()}`;
         const blob = new Blob([data], { type: 'text/csv' });
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -119,7 +141,7 @@ export default function Dashboard() {
                         transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
                         className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full"
                     />
-                    <p className="text-primary font-bold animate-pulse">Initializing Sky Scout Neural Link...</p>
+                    <p className="text-primary font-bold animate-pulse">Syncing Satellite Data...</p>
                 </div>
             </ProtectedRoute>
         );
@@ -136,7 +158,7 @@ export default function Dashboard() {
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                     <motion.div variants={itemVariants} className="text-foreground">
                         <h1 className="text-4xl font-black tracking-tight">{t('overview')}</h1>
-                        <p className="text-muted font-medium">{t('welcome')}</p>
+                        <p className="text-muted font-medium">Real-time Vegetation Intelligence</p>
                     </motion.div>
                     <div className="flex gap-3">
                         <div className="glass px-4 py-2 rounded-xl flex items-center gap-2 border border-border/50 text-foreground">
@@ -157,29 +179,29 @@ export default function Dashboard() {
                 <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 text-foreground">
                     <DashboardCard
                         title="Avg. NDVI Index"
-                        value={stats?.avgNDVI || "0.72"}
-                        subtext={parseFloat(stats?.avgNDVI || "0.72") > 0.6 ? t('optimal') : t('moderate')}
+                        value={stats?.avgNDVI || "0.00"}
+                        subtext={parseFloat(stats?.avgNDVI || "0") > 0.5 ? t('optimal') : t('moderate')}
                         icon={Activity}
-                        trend={{ value: "+4.2%", isUp: true }}
+                        trend={{ value: "+2.1%", isUp: true }}
                     />
                     <DashboardCard
-                        title={t('moisture')}
-                        value="64%"
-                        subtext="Healthy"
+                        title="Analyzed Files"
+                        value={reports.length.toString()}
+                        subtext="Total Scans"
                         icon={Droplets}
-                        trend={{ value: "-1.5%", isUp: false }}
+                        trend={{ value: "+5", isUp: true }}
                     />
                     <DashboardCard
-                        title={t('yield')}
-                        value={stats?.totalArea ? `${stats.totalArea} ha` : "1250 ha"}
+                        title="Est. Coverage"
+                        value={stats?.totalArea ? `${stats.totalArea} ha` : "0 ha"}
                         subtext="Total Area"
                         icon={TrendingUp}
                         trend={{ value: "+12%", isUp: true }}
                     />
                     <DashboardCard
-                        title={t('pestRisk')}
-                        value={stats?.activeAlerts > 0 ? "High" : "Low"}
-                        subtext={`${stats?.activeAlerts || 3} ${t('alerts')}`}
+                        title="Critical Zones"
+                        value={stats?.activeAlerts > 0 ? "High Risk" : "Stable"}
+                        subtext={`${stats?.activeAlerts || 0} alerts`}
                         icon={Zap}
                     />
                 </motion.div>
@@ -191,57 +213,46 @@ export default function Dashboard() {
                                 <Target className="w-8 h-8 text-primary" />
                                 {t('zonalAnalysis')}
                             </h2>
-                            <div className="flex items-center gap-3">
-                                <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-green-500/10 border border-green-500/20">
-                                    <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                                    <span className="text-[10px] font-black text-green-500 uppercase">Live Feed</span>
-                                </div>
-                                <select className="bg-white/5 border border-white/10 text-sm rounded-xl px-4 py-2 outline-none text-foreground font-bold backdrop-blur-md">
-                                    <option>North Field A</option>
-                                    <option>South Sector 4</option>
-                                </select>
-                            </div>
+                            <button
+                                onClick={() => router.push('/maps')}
+                                className="text-xs font-bold bg-white/10 hover:bg-white/20 px-4 py-2 rounded-xl transition-all"
+                            >
+                                Open Full Map
+                            </button>
                         </div>
 
-                        <div
-                            onClick={() => router.push('/maps')}
-                            className="aspect-video bg-[#0c1311] rounded-3xl relative overflow-hidden border border-white/5 flex items-center justify-center group cursor-pointer shadow-inner"
-                        >
-                            {/* Map Surface Simulation */}
-                            <div className="absolute inset-0 bg-[url('/ortho.webp')] bg-cover bg-center brightness-[0.3] group-hover:scale-105 transition-transform duration-[10s]" />
-
-                            {/* Scanning Laser */}
-                            <motion.div
-                                animate={{ top: ['0%', '100%', '0%'] }}
-                                transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
-                                className="absolute left-0 right-0 h-0.5 bg-primary/50 shadow-[0_0_15px_rgba(34,197,94,0.8)] z-20"
-                            />
-
-                            {/* Detection Point */}
-                            <motion.div
-                                animate={{ scale: [1, 1.5, 1], opacity: [0.5, 1, 0.5] }}
-                                transition={{ duration: 2, repeat: Infinity }}
-                                className="absolute top-1/3 left-1/2 w-4 h-4 bg-primary rounded-full shadow-[0_0_20px_rgba(34,197,94,1)]"
-                            >
-                                <div className="absolute inset-[-8px] border-2 border-primary rounded-full animate-ping" />
-                            </motion.div>
-
-                            <div className="z-10 text-foreground/40 text-center group-hover:text-primary transition-colors flex flex-col items-center gap-4">
-                                <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center border border-primary/20 group-hover:scale-110 transition-transform group-hover:rotate-12 group-hover:bg-primary group-hover:text-black">
-                                    <ExternalLink className="w-8 h-8" />
-                                </div>
-                                <div>
-                                    <p className="font-black text-2xl tracking-tight text-white/90 group-hover:text-white">INTERACTIVE TACTICAL MAP</p>
-                                    <p className="text-sm font-medium">Click to expand multispectral layers & NDVI data</p>
-                                </div>
-                            </div>
-
-                            {/* HUD Elements */}
-                            <div className="absolute top-4 right-4 p-4 font-mono text-[10px] text-primary/60 text-right space-y-1 pointer-events-none">
-                                <p>LAT: 40.7128° N</p>
-                                <p>LNG: 74.0060° W</p>
-                                <p>ALT: 120m</p>
-                            </div>
+                        {/* Recent Reports List */}
+                        <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                            {reports.length === 0 ? (
+                                <div className="text-center py-10 opacity-50">No analysis data available yet. Upload a file to begin.</div>
+                            ) : (
+                                reports.map((report) => (
+                                    <div key={report._id} className="glass p-4 rounded-2xl border border-white/5 hover:border-primary/30 transition-all group/item cursor-pointer" onClick={() => router.push(`/maps?report=${report._id}`)}>
+                                        <div className="flex justify-between items-start">
+                                            <div className="flex items-center gap-4">
+                                                <div className={`w-12 h-12 rounded-xl flex items-center justify-center font-black text-lg ${(report.aiInsights?.healthScore || 0) > 75 ? 'bg-green-500/20 text-green-400' :
+                                                    (report.aiInsights?.healthScore || 0) > 50 ? 'bg-yellow-500/20 text-yellow-400' :
+                                                        'bg-red-500/20 text-red-400'
+                                                    }`}>
+                                                    {report.aiInsights?.healthScore || 0}
+                                                </div>
+                                                <div>
+                                                    <h4 className="font-bold text-lg">{report.originalFile}</h4>
+                                                    <div className="flex gap-2 text-xs text-muted font-mono mt-1">
+                                                        <span>NDVI: {report.ndvi?.stats?.mean?.toFixed(2)}</span>
+                                                        <span>•</span>
+                                                        <span>{new Date(report.processedDate).toLocaleDateString()}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <ArrowRight className="w-5 h-5 opacity-0 group-hover/item:opacity-100 -translate-x-2 group-hover/item:translate-x-0 transition-all text-primary" />
+                                        </div>
+                                        <p className="mt-3 text-sm text-foreground/80 line-clamp-2">
+                                            {report.aiInsights?.summary || "No summary available."}
+                                        </p>
+                                    </div>
+                                ))
+                            )}
                         </div>
                     </motion.div>
 
@@ -249,33 +260,20 @@ export default function Dashboard() {
                         <motion.div variants={itemVariants} className="glass rounded-[2.5rem] p-8 border border-border/50">
                             <h2 className="text-xl font-black mb-6 flex items-center gap-3">
                                 <AlertTriangle className="w-6 h-6 text-accent" />
-                                {t('alerts')}
+                                Recent Insights
                             </h2>
                             <div className="space-y-4">
-                                {stats?.activeAlerts > 0 ? (
+                                {reports.slice(0, 3).flatMap(r => r.aiInsights?.recommendations?.slice(0, 1) || []).map((rec: string, i: number) => (
                                     <motion.div
+                                        key={i}
                                         whileHover={{ x: 5 }}
-                                        className="p-5 bg-red-500/10 border border-red-500/20 rounded-2xl group cursor-help"
+                                        className="p-5 bg-orange-500/10 border border-orange-500/20 rounded-2xl cursor-pointer"
                                     >
-                                        <div className="flex justify-between items-start mb-1">
-                                            <p className="text-sm font-black text-red-400 uppercase tracking-wider">Pest Cluster</p>
-                                            <span className="text-[10px] font-bold bg-red-500 text-white px-2 py-0.5 rounded">URGENT</span>
-                                        </div>
-                                        <p className="text-xs text-muted leading-relaxed font-medium">{stats.activeAlerts} zones showing aphid activity. Ground scouting recommended.</p>
+                                        <p className="text-sm font-black text-orange-400 uppercase tracking-wider">Recommendation</p>
+                                        <p className="text-xs text-muted mt-1 font-medium leading-relaxed">{rec}</p>
                                     </motion.div>
-                                ) : (
-                                    <div className="p-5 bg-green-500/10 border border-green-500/20 rounded-2xl">
-                                        <p className="text-sm font-black text-green-400 uppercase tracking-wider">All Clear</p>
-                                        <p className="text-xs text-muted mt-1 font-medium">All monitored sectors are healthy.</p>
-                                    </div>
-                                )}
-                                <motion.div
-                                    whileHover={{ x: 5 }}
-                                    className="p-5 bg-orange-500/10 border border-orange-500/20 rounded-2xl cursor-pointer"
-                                >
-                                    <p className="text-sm font-black text-orange-400 uppercase tracking-wider">Nitrogen Dip</p>
-                                    <p className="text-xs text-muted mt-1 font-medium leading-relaxed">Zone B-4 shows 12% drop in chlorophyll activity.</p>
-                                </motion.div>
+                                ))}
+                                {reports.length === 0 && <p className="text-muted text-sm text-center">No insights yet.</p>}
                             </div>
                         </motion.div>
 
@@ -286,13 +284,17 @@ export default function Dashboard() {
                             </h2>
                             <div className="space-y-3">
                                 {[
-                                    { label: "Schedule Fertilizer Flyover", icon: LocateFixed },
-                                    { label: "Optimize Irrigation Cycle", icon: Droplets }
-                                ].map((action, i) => (
-                                    <button key={i} className="w-full flex items-center justify-between p-5 rounded-2xl bg-white/5 hover:bg-primary hover:text-black transition-all border border-white/5 group font-bold">
+                                    { label: "New Analysis", icon: Target, action: () => router.push('/vegetation') },
+                                    { label: "View Full Maps", icon: LocateFixed, action: () => router.push('/maps') }
+                                ].map((item, i) => (
+                                    <button
+                                        key={i}
+                                        onClick={item.action}
+                                        className="w-full flex items-center justify-between p-5 rounded-2xl bg-white/5 hover:bg-primary hover:text-black transition-all border border-white/5 group font-bold"
+                                    >
                                         <div className="flex items-center gap-3">
-                                            <action.icon className="w-5 h-5 group-hover:scale-110 transition-transform" />
-                                            <span className="text-sm tracking-tight">{action.label}</span>
+                                            <item.icon className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                                            <span className="text-sm tracking-tight">{item.label}</span>
                                         </div>
                                         <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                                     </button>

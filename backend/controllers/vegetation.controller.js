@@ -1,8 +1,9 @@
 const VegetationReport = require('../models/VegetationReport');
 const { extractBands, readGeoTIFF } = require('../processors/vegetation/bandReader');
 const { ndvi, gndvi, ndre, savi, osavi } = require('../processors/vegetation/indexEngine');
-const { calculateStats } = require('../processors/vegetation/statistics');
-const { generateVegetationGrid } = require('../utils/gemini');
+const { calculateStats, calculateGrid } = require('../processors/vegetation/statistics');
+// Removed generateVegetationGrid import as we use real data now
+const { generateFarmAnalysis } = require('../utils/gemini'); // Import explicitly at top
 const Farm = require('../models/Farm');
 
 async function processSingleFile(file, userId, farmId) {
@@ -26,19 +27,24 @@ async function processSingleFile(file, userId, farmId) {
         const saviRaster = savi(bands.nir, bands.red);
         const osaviRaster = osavi(bands.nir, bands.red);
 
-        // 4. Calculate Stats
-        console.log(`[processSingleFile] Calculating stats for: ${file.originalname}`);
+        // 4. Calculate Stats & Grids (Real Data)
+        console.log(`[processSingleFile] Calculating stats and grids for: ${file.originalname}`);
         const ndviStats = calculateStats(ndviRaster);
+        const ndviGrid = calculateGrid(ndviRaster, tiffData.width, tiffData.height);
+
         const gndviStats = calculateStats(gndviRaster);
+        const gndviGrid = calculateGrid(gndviRaster, tiffData.width, tiffData.height);
+
         const ndreStats = ndreRaster ? calculateStats(ndreRaster) : null;
+        const ndreGrid = ndreRaster ? calculateGrid(ndreRaster, tiffData.width, tiffData.height) : [];
+
         const saviStats = calculateStats(saviRaster);
+        const saviGrid = calculateGrid(saviRaster, tiffData.width, tiffData.height);
+
         const osaviStats = calculateStats(osaviRaster);
+        const osaviGrid = calculateGrid(osaviRaster, tiffData.width, tiffData.height);
 
-        // 5. Generate AI Grids for Visualization
-        console.log(`[processSingleFile] Generating AI grids for: ${file.originalname}`);
-        const ndviGrid = await generateVegetationGrid(ndviStats, 'NDVI');
-
-        // 5.1 Generate Full Farm Analysis (Health Score, Insights)
+        // 5. Generate AI Farm Analysis (Optimization: We can make this optional or async if needed, but per user request we keep analysis but remove 'middle part' grid gen)
         console.log(`[processSingleFile] Generating AI Farm Insights for: ${file.originalname}`);
         const allStats = {
             ndvi: ndviStats,
@@ -47,8 +53,19 @@ async function processSingleFile(file, userId, farmId) {
             savi: saviStats,
             osavi: osaviStats
         };
-        const { generateFarmAnalysis } = require('../utils/gemini');
-        const aiInsights = await generateFarmAnalysis(allStats);
+
+        let aiInsights = {
+            healthScore: 0,
+            summary: "Analysis Pending",
+            recommendations: [],
+            detailedMarkdownReport: "Pending generation..."
+        };
+
+        try {
+            aiInsights = await generateFarmAnalysis(allStats);
+        } catch (aiError) {
+            console.error("Gemini Analysis Failed (Non-blocking):", aiError.message);
+        }
 
         // 5b. Create Report Object (to be saved)
         console.log(`[processSingleFile] Saving report to DB for: ${file.originalname}`);
@@ -58,16 +75,17 @@ async function processSingleFile(file, userId, farmId) {
             originalFile: file.filename,
             width: tiffData.width,
             height: tiffData.height,
-            ndvi: { stats: ndviStats, grid: ndviGrid }, // Save grid
-            gndvi: { stats: gndviStats },
-            ndre: { stats: ndreStats },
-            savi: { stats: saviStats },
-            osavi: { stats: osaviStats },
+            ndvi: { stats: ndviStats, grid: ndviGrid },
+            gndvi: { stats: gndviStats, grid: gndviGrid },
+            ndre: { stats: ndreStats, grid: ndreGrid },
+            savi: { stats: saviStats, grid: saviGrid },
+            osavi: { stats: osaviStats, grid: osaviGrid },
             metadata: {
                 bbox: tiffData.bbox ? Array.from(tiffData.bbox) : [],
                 crs: "EPSG:4326"
             },
-            aiInsights: aiInsights
+            aiInsights: aiInsights,
+            detailedReport: aiInsights.detailedMarkdownReport
         });
 
         await report.save();
@@ -93,6 +111,7 @@ async function processSingleFile(file, userId, farmId) {
                             healthScore: aiInsights.healthScore,
                             summary: aiInsights.summary
                         },
+                        // We do NOT save detailedReport here to keep Farm document light
                         recommendations: aiInsights.recommendations
                     }
                 }
@@ -105,10 +124,10 @@ async function processSingleFile(file, userId, farmId) {
             aiInsights: aiInsights,
             results: {
                 ndvi: { stats: ndviStats, grid: ndviGrid },
-                gndvi: gndviStats,
-                ndre: ndreStats,
-                savi: saviStats,
-                osavi: osaviStats
+                gndvi: { stats: gndviStats, grid: gndviGrid },
+                ndre: { stats: ndreStats, grid: ndreGrid },
+                savi: { stats: saviStats, grid: saviGrid },
+                osavi: { stats: osaviStats, grid: osaviGrid }
             }
         };
     } catch (error) {
@@ -186,4 +205,15 @@ async function processBatchVegetation(req, res) {
     }
 }
 
-module.exports = { processVegetation, processBatchVegetation };
+async function getAllReports(req, res) {
+    try {
+        const reports = await VegetationReport.find({ userId: req.user.id })
+            .sort({ processedDate: -1 })
+            .limit(20); // Limit to recent 20 for now
+        res.json(reports);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+}
+
+module.exports = { processVegetation, processBatchVegetation, getAllReports };

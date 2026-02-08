@@ -19,7 +19,8 @@ const vegetationSchema = new mongoose.Schema({
             stdDev: Number,
             healthyPercentage: Number
         },
-        rasterPath: String // Path to PNG/Tiff output if saved
+        rasterPath: String, // Path to PNG/Tiff output if saved
+        grid: [Number] // 20x20 Grid for visualization
     },
     gndvi: {
         stats: {
@@ -29,7 +30,8 @@ const vegetationSchema = new mongoose.Schema({
             stdDev: Number,
             healthyPercentage: Number
         },
-        rasterPath: String
+        rasterPath: String,
+        grid: [Number]
     },
     ndre: {
         stats: {
@@ -38,7 +40,8 @@ const vegetationSchema = new mongoose.Schema({
             mean: Number,
             stdDev: Number,
             healthyPercentage: Number
-        }
+        },
+        grid: [Number]
     },
     savi: {
         stats: {
@@ -47,7 +50,8 @@ const vegetationSchema = new mongoose.Schema({
             mean: Number,
             stdDev: Number,
             healthyPercentage: Number
-        }
+        },
+        grid: [Number]
     },
     osavi: {
         stats: {
@@ -56,7 +60,8 @@ const vegetationSchema = new mongoose.Schema({
             mean: Number,
             stdDev: Number,
             healthyPercentage: Number
-        }
+        },
+        grid: [Number]
     },
 
     // Metadata from GeoTIFF
@@ -78,7 +83,10 @@ const vegetationSchema = new mongoose.Schema({
             osavi: String
         },
         focusAreas: [String]
-    }
+    },
+
+    // Detailed Markdown Report
+    detailedReport: String
 });
 
 module.exports = mongoose.model('VegetationReport', vegetationSchema);

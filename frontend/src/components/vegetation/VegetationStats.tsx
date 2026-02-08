@@ -9,13 +9,18 @@ interface MetricStats {
     healthyPercentage: number;
 }
 
+interface MetricData {
+    stats: MetricStats;
+    grid: number[];
+}
+
 interface VegetationStatsProps {
     results: {
-        ndvi: MetricStats;
-        gndvi: MetricStats;
-        ndre?: MetricStats;
-        savi?: MetricStats;
-        osavi?: MetricStats;
+        ndvi: MetricData;
+        gndvi: MetricData;
+        ndre?: MetricData;
+        savi?: MetricData;
+        osavi?: MetricData;
     };
 }
 
@@ -52,19 +57,19 @@ const VegetationStats: React.FC<VegetationStatsProps> = ({ results }) => {
 
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <StatCard title="NDVI (Normalized Difference)" stats={results.ndvi} color="green" />
-            <StatCard title="GNDVI (Green Normalized Difference)" stats={results.gndvi} color="teal" />
+            <StatCard title="NDVI (Normalized Difference)" stats={results.ndvi?.stats} color="green" />
+            <StatCard title="GNDVI (Green Normalized Difference)" stats={results.gndvi?.stats} color="teal" />
 
             {results.ndre && (
-                <StatCard title="NDRE (Normalized Difference Red Edge)" stats={results.ndre} color="blue" />
+                <StatCard title="NDRE (Normalized Difference Red Edge)" stats={results.ndre?.stats} color="blue" />
             )}
 
             {results.savi && (
-                <StatCard title="SAVI (Soil Adjusted)" stats={results.savi} color="amber" />
+                <StatCard title="SAVI (Soil Adjusted)" stats={results.savi?.stats} color="amber" />
             )}
 
             {results.osavi && (
-                <StatCard title="OSAVI (Optimized Soil Adjusted)" stats={results.osavi} color="orange" />
+                <StatCard title="OSAVI (Optimized Soil Adjusted)" stats={results.osavi?.stats} color="orange" />
             )}
         </div>
     );

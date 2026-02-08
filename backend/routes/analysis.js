@@ -150,7 +150,8 @@ router.post('/analyze-batch', authenticateToken, upload.array('files'), async (r
         1.jpeg:https://blogger.googleusercontent.com/img/a/AVvXsEhG1gk46T94hGN9WSutj678pA2zaFlEcNCfFM8rrCeQp2s-6m-YBEODn1J8wPPxYNuqUg3jSPd_5wbI7E1MprOHTgHvFyVvDRH59fSX0EsoKopviIr9SL_XWm3vOwdkucPK7W1eR_YXe0jfTGFjftRW8VotUEFviIyMykcVlGSvvPhetCvuI18ftXWTeVkj
         ]
 
-        Where you put image name. Add image from respective link. put hyperlink reference everywhere image being mentioned.
+        Where you put image name. Add image from respective link.
+        Highlight important data/facts.
 
         Respond ONLY with the markdown content. No conversational filler.
         `;

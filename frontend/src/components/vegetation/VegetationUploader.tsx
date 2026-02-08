@@ -1,5 +1,6 @@
 'use client';
 import React, { useState } from 'react';
+import { uploadVegetationBatch } from '@/lib/api';
 
 interface VegetationUploaderProps {
     onUploadSuccess: (data: any) => void;
@@ -26,28 +27,25 @@ const VegetationUploader: React.FC<VegetationUploaderProps> = ({ onUploadSuccess
         setLoading(true);
         setError(null);
 
-        const formData = new FormData();
-        formData.append('image', file);
-
         try {
-            const token = localStorage.getItem('token'); // Assuming auth token is stored here
-            const response = await fetch('http://localhost:5000/api/vegetation/upload', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                },
-                body: formData
-            });
+            // Using the batch API as it's the verified working endpoint
+            const data = await uploadVegetationBatch([file]);
 
-            if (!response.ok) {
-                const errData = await response.json();
-                throw new Error(errData.error || 'Upload failed');
+            // The batch API returns { results: [...] }, we need to pass the first result or the whole structure
+            // Depending on what ValidationStats expects. 
+            // The previous code expected 'data' directly. 
+            // processSingleFile returns { results: { ndvi: ... } }
+            // processBatchVegetation returns { results: [ { results: ... } ] }
+
+            if (data.results && data.results.length > 0) {
+                onUploadSuccess(data.results[0]);
+            } else {
+                throw new Error("No analysis results returned");
             }
 
-            const data = await response.json();
-            onUploadSuccess(data);
         } catch (err: any) {
-            setError(err.message);
+            console.error("Upload error:", err);
+            setError(err.message || "An unexpected error occurred");
         } finally {
             setLoading(false);
         }
