@@ -31,8 +31,7 @@ router.post('/', async (req, res) => {
     if Question is: PRofile kaise update karen?
     then answer: Pahle apko yaha jana hai fir yaha fir yahan, aur apka kaam hogya!!!
 
-Use emojis to beutiful looking reponses.
-    `;
+    Use emojis to beutiful looking reponses.`;
 
     const prompt = `${systemPrompt}\n\nUser: ${message}\nSky Scout AI:`;
 
