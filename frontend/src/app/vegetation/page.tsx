@@ -53,7 +53,7 @@ export default function VegetationPage() {
 
                     {/* Right Column: Visualization & Stats */}
                     <div className="lg:col-span-2 space-y-8">
-                        <VegetationMap />
+                        <VegetationMap results={analysisResults} />
 
                         {analysisResults ? (
                             <VegetationStats results={analysisResults} />

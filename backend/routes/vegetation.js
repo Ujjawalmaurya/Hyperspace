@@ -32,4 +32,7 @@ router.post('/upload', authenticateToken, upload.single('image'), vegetationCont
 // Batch upload
 router.post('/batch', authenticateToken, upload.array('images'), vegetationController.processBatchVegetation);
 
+// Get all reports
+router.get('/', authenticateToken, vegetationController.getAllReports);
+
 module.exports = router;

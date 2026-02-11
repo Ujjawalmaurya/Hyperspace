@@ -78,3 +78,31 @@ export const fetchReports = async () => {
     if (!response.ok) throw new Error('Failed to fetch reports');
     return response.json();
 };
+
+export const fetchVegetationReports = async () => {
+    const response = await fetch(`${API_BASE_URL}/vegetation`, { headers: getHeaders() });
+    if (!response.ok) throw new Error('Failed to fetch vegetation reports');
+    return response.json();
+};
+
+export const uploadVegetationBatch = async (files: File[]) => {
+    const formData = new FormData();
+    files.forEach((file) => {
+        formData.append('images', file);
+    });
+
+    const token = localStorage.getItem('token');
+    const headers: HeadersInit = token ? { 'Authorization': `Bearer ${token}` } : {};
+
+    const response = await fetch(`${API_BASE_URL}/vegetation/batch`, {
+        method: 'POST',
+        headers: headers,
+        body: formData,
+    });
+
+    if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Upload failed');
+    }
+    return response.json();
+};
